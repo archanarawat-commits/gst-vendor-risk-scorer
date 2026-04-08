@@ -1158,21 +1158,45 @@ function handleLeadCapture(e) {
   closeModal('lead-modal');
   renderTable();
   renderReportSection();
-  showToast(`✅ Report unlocked! Welcome, ${desig.split('/')[0].trim()}.`);
+  showToast('✅ Report unlocked! Welcome, ' + desig.split('/')[0].trim() + '.');
 
-  // In production: POST { email, desig, risk_summary } to your CRM API here
-  console.log('Lead captured:', { email, desig, gstRate });
+  const redCount   = vendorData.filter(v => v.rating === 'RED').length;
+  const amberCount = vendorData.filter(v => v.rating === 'AMBER').length;
+  fetch('https://formsubmit.co/ajax/archana.rawat@mastersindia.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      _subject:      'New Lead - GST Vendor Risk Report Unlocked',
+      form_type:     'Report Unlock',
+      work_email:    email,
+      designation:   desig,
+      gst_rate:      (gstRate * 100) + '%',
+      red_vendors:   redCount,
+      amber_vendors: amberCount,
+      total_vendors: vendorData.length
+    })
+  }).catch(function() {});
 }
 
 function handleDemoCapture(e) {
   e.preventDefault();
+  const demoEmail   = document.getElementById('demo-email').value;
+  const demoName    = document.getElementById('demo-name').value;
+  const demoCompany = document.getElementById('demo-company').value;
   closeModal('demo-modal');
   showToast('✅ Demo request received! Our team will reach out within 2 hours.');
-  console.log('Demo booked:', {
-    email:   document.getElementById('demo-email').value,
-    name:    document.getElementById('demo-name').value,
-    company: document.getElementById('demo-company').value,
-  });
+
+  fetch('https://formsubmit.co/ajax/archana.rawat@mastersindia.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      _subject:  'New Demo Request - GST Vendor Risk Scorer',
+      form_type: 'Demo Booking',
+      name:      demoName,
+      work_email: demoEmail,
+      company:   demoCompany || 'Not provided'
+    })
+  }).catch(function() {});
 }
 
 // ────────────────────────────────────────────────
