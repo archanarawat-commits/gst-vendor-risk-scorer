@@ -588,6 +588,54 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
     footer a:hover { color: white; }
 
+
+    /* ── TABLE GATE OVERLAY ── */
+    .table-gate-wrap { position: relative; }
+    .table-blur { filter: blur(4px); pointer-events: none; user-select: none; }
+    .table-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 14px;
+    }
+    .gate-card {
+      background: white;
+      border-radius: 18px;
+      padding: 36px 40px;
+      text-align: center;
+      box-shadow: 0 12px 48px rgba(15,45,94,0.18);
+      border: 1px solid var(--border);
+      max-width: 440px;
+      width: 90%;
+    }
+    .gate-card .gate-icon { font-size: 42px; margin-bottom: 12px; }
+    .gate-card h3 { font-size: 20px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .gate-card p  { font-size: 14px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
+    .gate-form-group { margin-bottom: 14px; text-align: left; }
+    .gate-form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+    .gate-form-group input, .gate-form-group select {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 14px; color: var(--text); outline: none; background: white;
+    }
+    .gate-form-group input:focus, .gate-form-group select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.1);
+    }
+    .btn-gate-unlock {
+      width: 100%; background: var(--navy); color: white;
+      border: none; padding: 13px; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s; margin-top: 4px;
+    }
+    .btn-gate-unlock:hover { background: var(--navy-light); transform: translateY(-1px); }
+    .gate-privacy { font-size: 11.5px; color: var(--muted); margin-top: 12px; }
+
     /* ── PRINT ── */
     @media print {
       header, footer, .modal-overlay, #upload-section, .hero, .sort-row, .btn-download, .leakage-locked { display: none !important; }
@@ -698,6 +746,36 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       </div>
     </div>
 
+    <div class="table-gate-wrap" id="table-gate-wrap">
+      <div class="table-overlay" id="table-overlay">
+        <div class="gate-card">
+          <div class="gate-icon">📊</div>
+          <h3>Your results are ready!</h3>
+          <p>Enter your details below to see the full risk breakdown for each vendor — including which ones are putting your ITC at risk today.</p>
+          <form onsubmit="handleGateUnlock(event)">
+            <div class="gate-form-group">
+              <label>Work Email *</label>
+              <input type="email" id="gate-email" placeholder="you@company.com" required />
+            </div>
+            <div class="gate-form-group">
+              <label>Your Designation *</label>
+              <select id="gate-designation" required>
+                <option value="" disabled selected>Select your role</option>
+                <option>CFO / Finance Head</option>
+                <option>VP Finance</option>
+                <option>Finance Manager</option>
+                <option>Accounts Manager</option>
+                <option>Tax Manager / GST Lead</option>
+                <option>Business Owner / Director</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-gate-unlock">🔓 See My Vendor Risk Results</button>
+          </form>
+          <div class="gate-privacy">🔒 No spam. Your data is never stored or shared.</div>
+        </div>
+      </div>
+      <div id="table-inner" class="table-blur">
     <div class="table-wrap">
       <table>
         <thead>
@@ -715,6 +793,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         </thead>
         <tbody id="vendor-table-body"></tbody>
       </table>
+    </div>
+    </div>
     </div>
 
     <!-- Insight Banner -->
@@ -1146,6 +1226,38 @@ function closeModal(id) {
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
 });
+
+function handleGateUnlock(e) {
+  e.preventDefault();
+  const email = document.getElementById('gate-email').value;
+  const desig = document.getElementById('gate-designation').value;
+
+  capturedEmail = email;
+  isUnlocked    = true;
+
+  // Hide overlay and remove blur
+  document.getElementById('table-overlay').style.display = 'none';
+  document.getElementById('table-inner').classList.remove('table-blur');
+
+  renderTable();
+  showToast('\u2705 Welcome, ' + desig.split('/')[0].trim() + '! Here are your results.');
+
+  const redCount   = vendorData.filter(v => v.rating === 'RED').length;
+  const amberCount = vendorData.filter(v => v.rating === 'AMBER').length;
+  fetch('https://formsubmit.co/ajax/archana.rawat@mastersindia.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      _subject:      'New Lead - GST Vendor Risk Results Unlocked',
+      form_type:     'Results Gate Unlock',
+      work_email:    email,
+      designation:   desig,
+      red_vendors:   redCount,
+      amber_vendors: amberCount,
+      total_vendors: vendorData.length
+    })
+  }).catch(function() {});
+}
 
 function handleLeadCapture(e) {
   e.preventDefault();
